@@ -11,7 +11,7 @@ import subprocess
 import xml.etree.ElementTree as ET
 import re
 import lxml
-
+import lxml.etree
 
 ACRN_CONFIG_TARGET = ''
 SOURCE_ROOT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), '../../../')
@@ -671,3 +671,7 @@ def get_pt_intx_table(config_file):
             virt_gsi[vm_i].append(b)
 
     return phys_gsi, virt_gsi
+
+def get_enable_ptm(config_file):
+    scenario_etree = lxml.etree.parse(config_file)
+    return scenario_etree.xpath("//vm[PTM = 'y']/@id")
