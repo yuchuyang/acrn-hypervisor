@@ -1,6 +1,7 @@
 <acrn-config board="tgl-rvp" scenario="sdc" uos_launcher="1">
     <uos id="1">
 	<uos_type desc="UOS type">YOCTO</uos_type>
+	<enable_ptm>y</enable_ptm>
 	<rtos_type desc="UOS Realtime capability">no</rtos_type>
 	<mem_size desc="UOS memory size in MByte">2048</mem_size>
 	<gvt_args desc="GVT settings. Set it to gvtd for GVTd, otherwise is GVTg arguments. The recommendation arguments for GVTg is 64 448 8. Leave it blank to disable GVT.">gvtd</gvt_args>
@@ -29,7 +30,7 @@
 		<wifi desc="vm wifi device"></wifi>
 		<bluetooth desc="vm bluetooth"></bluetooth>
 		<sd_card desc="vm sd card device"></sd_card>
-		<ethernet desc="vm ethernet device"></ethernet>
+		<ethernet desc="vm ethernet device">00:1e.4 Ethernet controller: Intel Corporation Device a0ac</ethernet>
 		<sata desc="vm sata device"></sata>
 		<nvme desc="vm nvme device"></nvme>
 	</passthrough_devices>
