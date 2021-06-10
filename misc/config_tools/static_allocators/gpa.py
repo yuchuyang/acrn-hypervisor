@@ -152,7 +152,7 @@ def insert_vmsix_to_dev_dict(pt_dev_node, devdict):
         used_bar_index = set(bar_32bits_idx_list + bar_64bits_idx_list_1 + bar_64bits_idx_list_2)
         unused_bar_index = [i for i in range(6) if i not in used_bar_index]
         try:
-            next_bar_region = unused_bar_index.pop()
+            next_bar_region = unused_bar_index.pop(0)
         except IndexError:
             raise lib.error.ResourceError(f"Cannot allocate a bar index for vmsix supported device: {vendor}:{identifier}, used bar idx list: {used_bar_index}")
         address = common.get_node("./@address", pt_dev_node)
