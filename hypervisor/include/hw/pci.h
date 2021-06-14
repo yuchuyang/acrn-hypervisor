@@ -77,6 +77,7 @@
 #define PCIR_CLASS_CODE	      0x09U
 #define PCIR_SUBCLASS         0x0AU
 #define PCIR_CLASS            0x0BU
+#define PCIR_CACHELINE_SZ     0x0CU
 #define PCIR_HDRTYPE          0x0EU
 #define PCIM_HDRTYPE          0x7FU
 #define PCIM_HDRTYPE_NORMAL   0x00U

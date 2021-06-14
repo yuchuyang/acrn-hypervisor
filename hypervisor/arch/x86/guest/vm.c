@@ -148,6 +148,13 @@ bool is_nvmx_configured(const struct acrn_vm *vm)
 	return ((vm_config->guest_flags & GUEST_FLAG_NVMX_ENABLED) != 0U);
 }
 
+bool is_mca_enabled(const struct acrn_vm *vm)
+{
+	struct acrn_vm_config *vm_config = get_vm_config(vm->vm_id);
+
+	return ((vm_config->guest_flags & GUEST_FLAG_MCA_ENABLED) != 0U);
+}
+
 /**
  * @brief VT-d PI posted mode can possibly be used for PTDEVs assigned
  * to this VM if platform supports VT-d PI AND lapic passthru is not configured

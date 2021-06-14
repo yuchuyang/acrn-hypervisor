@@ -54,6 +54,8 @@
 #define GUEST_FLAG_RT				(1UL << 4U)     /* Whether the vm is RT-VM */
 #define GUEST_FLAG_NVMX_ENABLED			(1UL << 5U)	/* Whether this VM supports nested virtualization */
 
+#define GUEST_FLAG_MCA_ENABLED                  (1UL << 33U)    /* Whether MCA is exposed to the VM */
+
 /* TODO: We may need to get this addr from guest ACPI instead of hardcode here */
 #define VIRTUAL_SLEEP_CTL_ADDR		0x400U /* Pre-launched VM uses ACPI reduced HW mode and sleep control register */
 #define VIRTUAL_PM1A_CNT_ADDR		0x404U

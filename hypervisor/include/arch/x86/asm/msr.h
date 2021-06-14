@@ -666,4 +666,9 @@ void update_msr_bitmap_x2apic_passthru(struct acrn_vcpu *vcpu);
 /* Flush L1 D-cache */
 #define IA32_L1D_FLUSH				(1UL << 0U)
 
+#define MCG_CAP_BANK_COUNT			0xFFUL
+#define MCG_CAP_CMCI_P				(1UL << 10U)
+#define MSR_IA32_MC_STATUS_ADDRV		(1UL << 58U)
+#define MSR_IA32_MC_STATUS_MISCV		(1UL << 59U)
+
 #endif /* MSR_H */

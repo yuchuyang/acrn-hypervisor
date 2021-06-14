@@ -418,7 +418,7 @@ static const struct cfg_header_perm cfg_hdr_perm = {
 	.pt_mask = 0x0002U,
 	/* Command (0x04-0x05) and Status (0x06-0x07) Registers and
 	 * Base Address Registers (0x10-0x27) are writable */
-	.ro_mask = (uint16_t)~0x03f2U
+	.ro_mask = (uint16_t)~0x03fAU
 };
 
 
@@ -446,7 +446,11 @@ static void read_cfg_header(const struct pci_vdev *vdev,
 				*val |= PCIM_CMD_MEMEN;
 			}
 		} else {
-			*val = pci_vdev_read_vcfg(vdev, offset, bytes);
+			if ((offset == PCIR_CACHELINE_SZ) && (bytes == 1U) && is_prelaunched_vm(vpci2vm(vdev->vpci))) {
+				*val = pci_pdev_read_cfg(vdev->pdev->bdf, offset, bytes);
+			} else {
+				*val = pci_vdev_read_vcfg(vdev, offset, bytes);
+			}
 		}
 	}
 }
@@ -472,6 +476,10 @@ static void write_cfg_header(struct pci_vdev *vdev,
 					pdev_need_bar_restore(vdev->pdev)) {
 				pdev_restore_bar(vdev->pdev);
 			}
+		}
+
+		if ((offset == PCIR_CACHELINE_SZ) && (bytes == 1U) && is_prelaunched_vm(vpci2vm(vdev->vpci))) {
+			pci_pdev_write_cfg(vdev->pdev->bdf, offset, bytes, val);
 		}
 
 		/* ToDo: add cfg_hdr_perm for Type 1 device */

@@ -78,6 +78,9 @@ static const uint32_t emulated_guest_msrs[NUM_GUEST_MSRS] = {
 #ifdef CONFIG_NVMX_ENABLED
 	LIST_OF_VMX_MSRS,
 #endif
+
+	MSR_IA32_THERM_STATUS,
+	MSR_IA32_PACKAGE_THERM_STATUS,
 };
 
 #define NUM_MTRR_MSRS	13U
@@ -357,6 +360,22 @@ void init_emulated_msrs(struct acrn_vcpu *vcpu)
 	vcpu_set_guest_msr(vcpu, MSR_IA32_FEATURE_CONTROL, val64);
 }
 
+void init_mca_msrs(struct acrn_vcpu *vcpu)
+{
+	uint8_t *msr_bitmap = vcpu->arch.msr_bitmap;
+	uint32_t nr_banks, i;
+	uint64_t v;
+
+	v = msr_read(MSR_IA32_MCG_CAP);
+	nr_banks = (uint32_t)v & MCG_CAP_BANK_COUNT;
+
+	for (i = 0; i < nr_banks; i++) {
+		enable_msr_interception(msr_bitmap, MSR_IA32_MC0_CTL + (4 * i), INTERCEPT_DISABLE);
+		enable_msr_interception(msr_bitmap, MSR_IA32_MC0_STATUS + (4 * i), INTERCEPT_READ);
+		enable_msr_interception(msr_bitmap, MSR_IA32_MC0_CTL2 + i, INTERCEPT_DISABLE);
+	}
+}
+
 /**
  * @pre vcpu != NULL
  */
@@ -401,7 +420,9 @@ void init_msr_emulation(struct acrn_vcpu *vcpu)
 	init_emulated_msrs(vcpu);
 
 	/* Initialize VMX MSRs for nested virtualization */
-	init_vmx_msrs(vcpu);
+	if (is_mca_enabled(vcpu->vm)) {
+		init_vmx_msrs(vcpu);
+	}
 }
 
 static int32_t write_pat_msr(struct acrn_vcpu *vcpu, uint64_t value)
@@ -443,6 +464,19 @@ bool is_iwkey_backup_support(struct acrn_vcpu *vcpu)
 
 	guest_cpuid(vcpu, &eax, &ebx, &ecx, &edx);
 	return (ebx & CPUID_EBX_KL_BACKUP_MSR) == CPUID_EBX_KL_BACKUP_MSR;
+}
+
+bool is_mc_status_msr(uint32_t msr)
+{
+	uint32_t nr_banks;
+	uint64_t v;
+
+	v = msr_read(MSR_IA32_MCG_CAP);
+	nr_banks = (uint32_t)v & MCG_CAP_BANK_COUNT;
+
+	return (msr >= MSR_IA32_MC0_STATUS) &&
+		(msr < (MSR_IA32_MC0_STATUS + (4U * nr_banks))) &&
+		(((msr - MSR_IA32_MC0_STATUS) % 4U) == 0U);
 }
 
 /**
@@ -507,6 +541,8 @@ int32_t rdmsr_vmexit_handler(struct acrn_vcpu *vcpu)
 		break;
 	}
 	case MSR_IA32_PERF_CTL:
+	case MSR_IA32_THERM_STATUS:
+	case MSR_IA32_PACKAGE_THERM_STATUS:
 	{
 		v = msr_read(msr);
 		break;
@@ -533,6 +569,14 @@ int32_t rdmsr_vmexit_handler(struct acrn_vcpu *vcpu)
 		break;
 	}
 	case MSR_IA32_MCG_CAP:
+	{
+		if (is_mca_enabled(vcpu->vm)) {
+			v = msr_read(MSR_IA32_MCG_CAP) & (MCG_CAP_BANK_COUNT | MCG_CAP_CMCI_P);
+		} else {
+			v = 0UL;
+		}
+		break;
+	}
 	case MSR_IA32_MCG_STATUS:
 	{
 		v = 0U;
@@ -607,6 +651,8 @@ int32_t rdmsr_vmexit_handler(struct acrn_vcpu *vcpu)
 			 * to just one switch to improvement  performance?
 			 */
 			err = read_vmx_msr(vcpu, msr, &v);
+		} else if (is_mca_enabled(vcpu->vm) && is_mc_status_msr(msr)) {
+			v = msr_read(msr) & ~(MSR_IA32_MC_STATUS_ADDRV | MSR_IA32_MC_STATUS_MISCV);
 		} else {
 			pr_warn("%s(): vm%d vcpu%d reading MSR %lx not supported",
 				__func__, vcpu->vm->vm_id, vcpu->vcpu_id, msr);
@@ -890,6 +936,8 @@ int32_t wrmsr_vmexit_handler(struct acrn_vcpu *vcpu)
 	case MSR_IA32_SGXLEPUBKEYHASH2:
 	case MSR_IA32_SGXLEPUBKEYHASH3:
 	case MSR_IA32_SGX_SVN_STATUS:
+	case MSR_IA32_THERM_STATUS:
+	case MSR_IA32_PACKAGE_THERM_STATUS:
 	{
 		err = -EACCES;
 		break;
