@@ -40,7 +40,7 @@ KNOWN_CAPS_PCI_DEVS_DB = {
     "VMSIX":TSN_DEVS + GPIO_DEVS,
 }
 
-P2SB_PASSTHRU_BOARD = ('ehl-crb-b')
+P2SB_PASSTHRU_BOARD = ('ehl-crb-b', 'tgl-rvp')
 
 def get_info(board_info, msg_s, msg_e):
     """
@@ -705,14 +705,14 @@ def is_matched_board(boardlist):
 
 
 def find_p2sb_bar_addr():
-    if not is_matched_board(('ehl-crb-b')):
+    if not is_matched_board(('ehl-crb-b', 'tgl-rvp')):
         common.print_red('find_p2sb_bar_addr() can only be called for board ehl-crb-b', err=True)
         sys.exit(1)
 
     iomem_lines = get_info(common.BOARD_INFO_FILE, "<IOMEM_INFO>", "</IOMEM_INFO>")
 
     for line in iomem_lines:
-        if 'INTC1020:' in line:
+        if 'INTC1020:' in line or 'INT34C5:' in line:
             start_addr = int(line.split('-')[0], 16) & 0xFF000000
             return start_addr
 

@@ -49,6 +49,7 @@
     <xs:enumeration value="GUEST_FLAG_HIDE_MTRR" />
     <xs:enumeration value="GUEST_FLAG_RT" />
     <xs:enumeration value="GUEST_FLAG_NVMX_ENABLED" />
+    <xs:enumeration value="GUEST_FLAG_MCA_ENABLED" />
   </xs:restriction>
 </xs:simpleType>
 

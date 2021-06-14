@@ -1218,7 +1218,7 @@ def check_pt_intx(phys_gsi, virt_gsi):
     if len(phys_gsi) == 0 and len(virt_gsi) == 0:
         return
 
-    if not board_cfg_lib.is_matched_board(('ehl-crb-b','generic_board')):
+    if not board_cfg_lib.is_matched_board(('ehl-crb-b', 'tgl-rvp', 'generic_board')):
         ERR_LIST["pt_intx"] = "only board ehl-crb-b/generic_board is supported"
         return
 
