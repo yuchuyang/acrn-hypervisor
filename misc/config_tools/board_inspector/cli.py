@@ -11,11 +11,34 @@ import subprocess
 import lxml.etree
 import argparse
 from importlib import import_module
+from cpuparser import parse_cpuid, get_online_cpu_ids
 
 script_dir = os.path.dirname(os.path.realpath(__file__))
 sys.path.append(os.path.join(script_dir))
 
+def isKVM():
+    cpu_ids = get_online_cpu_ids()
+    cpu_id = cpu_ids.pop(0)
+    leaf_40000000 = parse_cpuid(0x40000000, 0, cpu_id)
+    if leaf_40000000.signature_0 == 0x4b4d564b and leaf_40000000.signature_1 == 0x564b4d56 and leaf_40000000.signature_2 == 0x4d:
+        logging.warning(f"The board inspector is running on top of KVM, be sure it's inside QEMU.")
+        return True
+    return False
+
+def native_check():
+    cpu_ids = get_online_cpu_ids()
+    cpu_id = cpu_ids.pop(0)
+    leaf_1 = parse_cpuid(1, 0, cpu_id)
+    if leaf_1.hypervisor != 0:
+        if isKVM():
+            return
+        logging.error(f"The board inspector must be run in a native OS environment and not from a VM.")
+        sys.exit(1)
+
 def main(board_name, board_xml, args):
+    # Check if this is native os
+    native_check()
+
     try:
         # First invoke the legacy board parser to create the board XML ...
         legacy_parser = os.path.join(script_dir, "legacy", "board_parser.py")

@@ -21,6 +21,7 @@ dispatch_table = {
     # 0x10: multiple parsers
     0x1A: cpuparser.cpuids.LEAF_1A,
     0x1F: cpuparser.cpuids.LEAF_1F,
+    0x40000000: cpuparser.cpuids.LEAF_40000000,
     0x80000000: cpuparser.cpuids.LEAF_80000000,
     0x80000001: cpuparser.cpuids.LEAF_80000001,
     0x80000002: cpuparser.cpuids.LEAF_80000002,
@@ -59,3 +60,15 @@ def parse_cpuid(leaf, subleaf, cpu_id):
             return None
     else:
         return None
+
+def get_online_cpu_ids():
+    acc = list()
+    with open("/sys/devices/system/cpu/online", "r") as f:
+        line = f.read().strip()
+        for r in line.split(","):
+            if r.find("-") > 0:
+                first, last = tuple(map(int, r.split("-")))
+                acc.extend(range(first, last + 1))
+            else:
+                acc.append(int(r))
+    return acc

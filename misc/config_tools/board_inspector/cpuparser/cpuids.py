@@ -75,6 +75,7 @@ class LEAF_1(CPUID):
     avx = cpuidfield(ECX, 28, 28)
     f16c = cpuidfield(ECX, 29, 29)
     rdrand = cpuidfield(ECX, 30, 30)
+    hypervisor = cpuidfield(ECX, 31, 31)
 
     fpu = cpuidfield(EDX, 0, 0)
     vme = cpuidfield(EDX, 1, 1)
@@ -651,6 +652,16 @@ class LEAF_1F(LEAF_B):
     """Extened Topology Enumeration Leaf v2"""
 
     leaf = 0x1F
+
+class LEAF_40000000(CPUID):
+    """Extended Function CPUID Information"""
+
+    leaf = 0x40000000
+
+    maximum_input_value = cpuidfield(EAX, 31, 0, doc="The maximum input value for hypervisor CPUID information")
+    signature_0 = cpuidfield(EBX, 31, 0, doc="Hypervisor Vendor ID Signature")
+    signature_1 = cpuidfield(ECX, 31, 0, doc="Hypervisor Vendor ID Signature")
+    signature_2 = cpuidfield(EDX, 31, 0, doc="Hypervisor Vendor ID Signature")
 
 class LEAF_80000000(CPUID):
     """Extended Function CPUID Information"""
