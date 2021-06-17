@@ -30,6 +30,10 @@
     <xsl:apply-templates select="hv/MISC_CFG" />
   </xsl:template>
 
+  <xsl:template match="//allocation-data/acrn-config">
+    <xsl:apply-templates select="hv" />
+  </xsl:template>
+
   <xsl:template match="DEBUG_OPTIONS">
     <xsl:call-template name="boolean-by-key">
       <xsl:with-param name="key" select="'RELEASE'" />
@@ -173,11 +177,6 @@
       <xsl:with-param name="key" select="'MAX_PT_IRQ_ENTRIES'" />
     </xsl:call-template>
 
-    <xsl:call-template name="integer-by-key">
-      <xsl:with-param name="key" select="'MAX_MSIX_TABLE_NUM'" />
-      <xsl:with-param name="default" select="normalize-space(/acrn-offline-data/board-data/acrn-config/MAX_MSIX_TABLE_NUM)" />
-    </xsl:call-template>
-
     <xsl:call-template name="integer-by-key-value">
       <xsl:with-param name="key" select="'MAX_EMULATED_MMIO_REGIONS'" />
       <xsl:with-param name="value" select="MAX_EMULATED_MMIO" />
@@ -252,6 +251,12 @@
   <xsl:template match="MISC_CFG">
     <xsl:call-template name="integer-by-key">
       <xsl:with-param name="key" select="'GPU_SBDF'" />
+    </xsl:call-template>
+  </xsl:template>
+
+  <xsl:template match="hv">
+    <xsl:call-template name="integer-by-key">
+      <xsl:with-param name="key" select="'MAX_MSIX_TABLE_NUM'" />
     </xsl:call-template>
   </xsl:template>
 

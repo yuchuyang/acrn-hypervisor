@@ -19,6 +19,7 @@
 
     <xsl:apply-templates select="board-data/acrn-config" />
     <xsl:apply-templates select="config-data/acrn-config" />
+    <xsl:apply-templates select="allocation-data/acrn-config" />
 
     <xsl:text>#endif&#x0a;</xsl:text>
   </xsl:template>

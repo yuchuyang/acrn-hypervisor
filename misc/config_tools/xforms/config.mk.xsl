@@ -16,6 +16,7 @@
   <xsl:template match="/acrn-offline-data">
     <xsl:apply-templates select="board-data/acrn-config" />
     <xsl:apply-templates select="config-data/acrn-config" />
+    <xsl:apply-templates select="allocation-data/acrn-config" />
   </xsl:template>
 
   <xsl:template name="entry-by-key-value">
