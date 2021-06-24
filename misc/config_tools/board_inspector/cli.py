@@ -20,6 +20,10 @@ def isKVM():
     cpu_ids = get_online_cpu_ids()
     cpu_id = cpu_ids.pop(0)
     leaf_40000000 = parse_cpuid(0x40000000, 0, cpu_id)
+    print(f"EAX: {hex(leaf_40000000.maximum_input_value)}")
+    print(f"EBX: {hex(leaf_40000000.signature_0)}")
+    print(f"ECX: {hex(leaf_40000000.signature_1)}")
+    print(f"EDX: {hex(leaf_40000000.signature_2)}")
     if leaf_40000000.signature_0 == 0x4b4d564b and leaf_40000000.signature_1 == 0x564b4d56 and leaf_40000000.signature_2 == 0x4d:
         logging.warning(f"The board inspector is running on top of KVM, be sure it's inside QEMU.")
         return True
