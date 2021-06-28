@@ -202,6 +202,20 @@ def get_devs_mem_passthrough(board_etree, scenario_etree):
                 dev_list.append(MmioWindow(int(start, 16), int(end, 16)))
     return dev_list
 
+def get_tpm2_passthrough(board_etree, scenario_etree, low_mem, high_mem, used_low_mem, used_high_mem):
+    tpm2_enabled = common.get_node(f"//vm[@id = '0']/mmio_resources/TPM2/text()", scenario_etree)
+    if tpm2_enabled is None or tpm2_enabled == 'n':
+        return
+    log_area_start_address = common.get_node(f"//device[@id = 'MSFT0101']/capability/log_area_start_address/text()", board_etree)
+    log_area_minimum_length = common.get_node(f"//device[@id = 'MSFT0101']/capability/log_area_minimum_length/text()", board_etree)
+    if log_area_start_address is not None and log_area_minimum_length is not None:
+        log_area_end_address = int(log_area_start_address, 16) - int(log_area_minimum_length, 16) - 1
+        window = MmioWindow(start = int(log_area_start_address, 16), end = log_area_end_address)
+        if any((window.overlaps(w) for w in low_mem)):
+            used_low_mem.append(window)
+        elif any((window.overlaps(w) for w in high_mem)):
+            used_high_mem.append(window)
+
 def get_pci_hole_native(board_etree):
     resources = board_etree.xpath(f"//bus[@type = 'pci']/device[@address]/resource[@type = 'memory' and @len != '0x0']")
     resources_hostbridge =  board_etree.xpath("//bus[@address = '0x0']/resource[@type = 'memory' and @len != '0x0' and not(@id) and not(@width)]")
@@ -329,6 +343,7 @@ def fn(board_etree, scenario_etree, allocation_etree):
         if vm_type is not None and lib.lib.is_pre_launched_vm(vm_type):
             low_mem = [MmioWindow(start = PRE_LAUNCHED_VM_LOW_MEM_START, end = PRE_LAUNCHED_VM_LOW_MEM_END - 1)]
             high_mem = [MmioWindow(start = PRE_LAUNCHED_VM_HIGH_MEM_START, end = PRE_LAUNCHED_VM_HIGH_MEM_END - 1)]
+            get_tpm2_passthrough(board_etree, scenario_etree, low_mem, high_mem, used_low_mem, used_high_mem)
         elif vm_type is not None and lib.lib.is_sos_vm(vm_type):
             low_mem = native_low_mem
             high_mem = native_high_mem
