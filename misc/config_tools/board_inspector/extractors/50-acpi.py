@@ -3,10 +3,11 @@
 # SPDX-License-Identifier: BSD-3-Clause
 #
 
+import ctypes
 import logging
 import lxml.etree
 
-from acpiparser import parse_dsdt
+from acpiparser import parse_dsdt, parse_tpm2
 from acpiparser.aml.interpreter import ConcreteInterpreter
 from acpiparser.aml.exception import UndefinedSymbol, FutureWork
 from acpiparser.rdt import *
@@ -95,6 +96,32 @@ def parse_extended_irq(item, elem):
     for irq in item._INT:
         add_child(elem, "resource", type="irq", int=hex(irq))
 
+def parse_tpm(elem):
+    try:
+        data = parse_tpm2()
+
+        add_child(elem, "signature", data.header.signature.decode())
+        add_child(elem, "table_length", hex(data.header.length))
+        add_child(elem, "revision", hex(data.header.revision))
+        add_child(elem, "checksum", hex(data.header.checksum))
+        add_child(elem, "oem_id", data.header.oemid.decode())
+        add_child(elem, "oem_table_id", data.header.oemtableid.decode())
+        add_child(elem, "oem_revision", hex(data.header.oemrevision))
+        add_child(elem, "creator_id", data.header.creatorid.decode())
+        add_child(elem, "creator_revision", hex(data.header.creatorrevision))
+        control_area = add_child(elem, "capability", None, id="control_area")
+        add_child(control_area, "address_of_control_area", hex(data.address_of_control_area))
+        start_method = add_child(elem, "capability", None, id="start_method")
+        add_child(start_method, "value", hex(data.start_method))
+        if ctypes.sizeof(data) > 52:
+            log_area = add_child(elem, "capability", None, id="log_area")
+            add_child(log_area, "log_area_minimum_length", hex(data.log_area_minimum_length))
+            add_child(log_area, "log_area_start_address", hex(data.log_area_start_address))
+    except Exception as e:
+        logging.info(f"Parse ACPI TPM2 failed: {str(e)}")
+        logging.info(f"Will not extract information from ACPI TPM2")
+        return
+
 resource_parsers = {
     (0, SMALL_RESOURCE_ITEM_IRQ_FORMAT): parse_irq,
     (0, SMALL_RESOURCE_ITEM_IO_PORT): parse_io_port,
@@ -144,6 +171,9 @@ def fetch_device_info(devices_node, interpreter, namepath):
         if hid in buses.keys():
             element.tag = "bus"
             element.set("type", buses[hid])
+
+        if hid == "MSFT0101":
+            parse_tpm(element)
 
         # Description
         if interpreter.context.has_symbol(f"{namepath}._STR"):
