@@ -191,6 +191,18 @@
         <xsl:value-of select="acrn:define('VM0_TPM_BUFFER_BASE_ADDR', '0xFED40000', 'UL')" />
         <xsl:value-of select="acrn:define('VM0_TPM_BUFFER_BASE_ADDR_GPA', '0xFED40000', 'UL')" />
         <xsl:value-of select="acrn:define('VM0_TPM_BUFFER_SIZE', '0x5000', 'UL')" />
+        <xsl:choose>
+          <xsl:when test="legacy_vuart[@id = 0]/base[text() != 'INVALID_COM_BASE']">
+            <xsl:value-of select="acrn:define('VM0_TPM_EVENTLOG_BASE_ADDR', //device[@id = 'MSFT0101']/capability/log_area_start_address, 'UL')" />
+            <xsl:value-of select="acrn:define('VM0_TPM_EVENTLOG_BASE_ADDR_GPA', //device[@id = 'MSFT0101']/capability/log_area_start_address, 'UL')" />
+            <xsl:value-of select="acrn:define('VM0_TPM_EVENTLOG_SIZE', //device[@id = 'MSFT0101']/capability/log_area_minimum_length, 'UL')" />
+          </xsl:when>
+          <xsl:otherwise>
+            <xsl:value-of select="acrn:define('VM0_TPM_EVENTLOG_BASE_ADDR', '0', 'UL')" />
+            <xsl:value-of select="acrn:define('VM0_TPM_EVENTLOG_BASE_ADDR_GPA', '0', 'UL')" />
+            <xsl:value-of select="acrn:define('VM0_TPM_EVENTLOG_SIZE', '0', 'UL')" />
+          </xsl:otherwise>
+        </xsl:choose>
       </xsl:if>
     </xsl:if>
   </xsl:if>
