@@ -310,20 +310,23 @@ struct acrn_assign_pcidev {
  *
  * the parameter for HC_ASSIGN_MMIODEV or HC_DEASSIGN_MMIODEV hypercall
  */
-struct acrn_mmiodev {
-	/** the gpa of the MMIO region for the MMIO device */
-	uint64_t base_gpa;
+ struct acrn_mmiodev {
+	  char name[8];
+        struct acrn_mmiores {
+		/** the gpa of the MMIO region for the MMIO device */
+        uint64_t base_gpa;
 
-	/** the hpa of the MMIO region for the MMIO device */
-	uint64_t base_hpa;
+        /** the hpa of the MMIO region for the MMIO device */
+        uint64_t base_hpa;
 
-	/** the size of the MMIO region for the MMIO device */
-	uint64_t size;
+        /** the size of the MMIO region for the MMIO device */
+        uint64_t size;
+        uint64_t attr;
+        } mmiores[3];
 
-	/** reserved for extension */
-	uint64_t reserved[13];
-
-} __attribute__((aligned(8)));
+        /** reserved for extension */
+        uint64_t reserved[3];
+ } __attribute__((aligned(8)));
 
 /**
  * @brief Info to create or destroy a virtual PCI or legacy device for a VM
