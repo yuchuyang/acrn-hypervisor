@@ -100,15 +100,7 @@ def parse_tpm(elem):
     try:
         data = parse_tpm2()
 
-        add_child(elem, "signature", data.header.signature.decode())
         add_child(elem, "table_length", hex(data.header.length))
-        add_child(elem, "revision", hex(data.header.revision))
-        add_child(elem, "checksum", hex(data.header.checksum))
-        add_child(elem, "oem_id", data.header.oemid.decode())
-        add_child(elem, "oem_table_id", data.header.oemtableid.decode())
-        add_child(elem, "oem_revision", hex(data.header.oemrevision))
-        add_child(elem, "creator_id", data.header.creatorid.decode())
-        add_child(elem, "creator_revision", hex(data.header.creatorrevision))
         control_area = add_child(elem, "capability", None, id="control_area")
         add_child(control_area, "address_of_control_area", hex(data.address_of_control_area))
         start_method = add_child(elem, "capability", None, id="start_method")
