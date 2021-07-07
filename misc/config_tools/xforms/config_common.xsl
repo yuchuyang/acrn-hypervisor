@@ -261,6 +261,7 @@
     <xsl:call-template name="integer-by-key-value">
       <xsl:with-param name="key" select="'MAX_MSIX_TABLE_NUM'" />
       <xsl:with-param name="value" select="$max" />
+      <xsl:with-param name="default" select="'64'" />
     </xsl:call-template>
   </xsl:template>
 
