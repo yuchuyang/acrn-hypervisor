@@ -105,6 +105,8 @@ def parse_tpm(elem):
         add_child(control_area, "address_of_control_area", hex(data.address_of_control_area))
         start_method = add_child(elem, "capability", None, id="start_method")
         add_child(start_method, "value", hex(data.start_method))
+        for parameter in data.start_method_specific_parameters:
+            add_child(start_method, "parameter", hex(parameter))
         if ctypes.sizeof(data) > 52:
             log_area = add_child(elem, "capability", None, id="log_area")
             add_child(log_area, "log_area_minimum_length", hex(data.log_area_minimum_length))
