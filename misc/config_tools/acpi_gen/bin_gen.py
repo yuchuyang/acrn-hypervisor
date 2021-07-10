@@ -5,9 +5,131 @@
 
 """
 
+import logging
 import os, sys, subprocess, argparse, re, shutil
+import lxml.etree
 from acpi_const import *
+import common
 
+def HeaderData(**kwargs):
+    data = {}
+    for key, value in kwargs.items():
+        if key == "signature":
+            if not isinstance(value, str):
+                raise TypeError(f"signature must be a string: {type(value)}")
+            if len(value) > 4:
+                raise IndexError(f"signature must be fitted in 4 bytes: length of signature {len(value)}")
+            data[key] = value.encode()
+        elif key == "length":
+            if not isinstance(value, int):
+                raise TypeError(f"length must be an integer: {type(value)}")
+            if value < 0 or value > 0xFFFFFFFF:
+                raise ValueError(f"length must be in range[0:0xFFFFFFFF]: {hex(value)}")
+            data[key] = value.to_bytes(4, 'little')
+        elif key == "revision":
+            if not isinstance(value, int):
+                raise TypeError(f"revision must be an integer: {type(value)}")
+            if value < 0 or value > 0xFF:
+                raise ValueError(f"revision must be in range[0:0xFF]: {hex(value)}")
+            data[key] = value.to_bytes(1, 'little')
+        elif key == "oemid":
+            if not isinstance(value, str):
+                raise TypeError(f"oemid must be a string: {type(value)}")
+            if len(value) > 6:
+                raise IndexError(f"oemid must be fitted in 6 bytes: length of oemid {len(value)}")
+            data[key] = value.encode()
+        elif key == "oemtableid":
+            if not isinstance(value, str):
+                raise TypeError(f"oemtableid must be a string: {type(value)}")
+            if len(value) > 8:
+                raise IndexError(f"oemtableid must be fitted in 8 bytes: length of oemtableid {len(value)}")
+            data[key] = value.encode()
+        elif key == "oemrevision":
+            if not isinstance(value, int):
+                raise TypeError(f"oemrevision must be an integer: {type(value)}")
+            if value < 0 or value > 0xFFFFFFFF:
+                raise ValueError(f"oemrevision must be in range[0:0xFFFFFFFF]: {hex(value)}")
+            data[key] = value.to_bytes(4, 'little')
+        elif key == "creatorid":
+            if not isinstance(value, str):
+                raise TypeError(f"creatorid must be a string: {type(value)}")
+            if len(value) > 4:
+                raise IndexError(f"creatorid must be fitted in 4 bytes: length of creatorid {len(value)}")
+            data[key] = value.encode()
+        elif key == "creatorrevision":
+            if not isinstance(value, int):
+                raise TypeError(f"creatorrevision must be an integer: {type(value)}")
+            if value < 0 or value > 0xFFFFFFFF:
+                raise ValueError(f"creatorrevision must be in range[0:0xFFFFFFFF]: {hex(value)}")
+            data[key] = value.to_bytes(4, 'little')
+        elif key == "platformclass":
+            if not isinstance(value, int):
+                raise TypeError(f"platformclass must be an integer: {type(value)}")
+            if value < 0 or value > 0xFFFF:
+                raise ValueError(f"platformclass must be in range[0:0xFFFF]: {hex(value)}")
+            data[key] = value.to_bytes(2, 'little')
+        else:
+            logging.warning("unknown field:value = {key}:{value} is specified, this data is discard.")
+    return data
+
+def TPM2Metadata(tpm2_node):
+    data = HeaderData(
+        signature = "TPM2",
+        length = int(common.get_node("./table_length/text()", tpm2_node), 16),
+        revision = 0x3,
+        oemid = "ACRN  ",
+        oemtableid = "ACRNTPM2",
+        oemrevision = 0x1,
+        creatorid = "INTL",
+        creatorrevision = 0x20190703,
+        platformclass = 0x0,
+        )
+    data["reserved"] = int("0", 16).to_bytes(2, 'little')
+    data["controlarea"] = int("FED40040", 16).to_bytes(8, 'little')
+    data["start_method"] = int(common.get_node("./capability[@id = 'start_method']/value/text()", tpm2_node), 16).to_bytes(4, 'little')
+    start_method_specific_parameters = [int(parameter, 16) for parameter in tpm2_node.xpath("//parameters")]
+    if len(start_method_specific_parameters) > 0:
+        data["start_method_specific_parameters"] = bytes(start_method_specific_parameters)
+    log_area_minimum_length = common.get_node("//log_area_minimum_length", tpm2_node)
+    if log_area_minimum_length is not None:
+        data["log_area_minimum_length"] = int(log_area_minimum_length, 16).to_bytes(4, 'little')
+    log_area_start_address = common.get_node("//log_area_start_address", tpm2_node)
+    if log_area_start_address is not None:
+        data["log_area_start_address"] = int(log_area_start_address, 16).to_bytes(8, 'little')
+    return data
+    """
+    for key, value in kwargs.items():
+        if key == "controlarea":
+            if not isinstance(value, int):
+                raise TypeError(f"controlarea must be an integer: {type(value)}")
+            if value < 0 or value > 0xFFFFFFFFFFFFFFFF:
+                raise ValueError(f"controlarea must be in range[0:0xFFFFFFFFFFFFFFFF]: {hex(value)}")
+            self.metadata[key] = value.to_bytes(8, 'big')
+        elif key == "start_method":
+            if not isinstance(value, int):
+                raise TypeError(f"start_method must be an integer: {type(value)}")
+            if value < 0 or value > 11:
+                raise ValueError(f"start_method must be in range[0:0xB]: {hex(value)}")
+            self.metadata[key] = bytes(value)
+        elif key == "start_method_specific_parameters":
+            if not isinstance(value, list):
+                raise TypeError(f"start_method_specific_parameters must be a list: {type(value)}")
+            self.metadata[key] = bytes(value)
+        elif key == "log_area_minimum_length":
+            if not isinstance(value, int):
+                raise TypeError(f"log_area_minimum_length must be an integer: {type(value)}")
+            if value < 0 or value > 0xFFFFFFFF:
+                raise ValueError(f"log_area_minimum_length must be in range[0:0xFFFFFFFF]: {hex(value)}")
+            self.metadata[key] = value.to_bytes(4, 'big')
+        elif key == "log_area_start_address":
+            if not isinstance(value, int):
+                raise TypeError(f"log_area_start_address must be an integer: {type(value)}")
+            if value < 0 or value > 0xFFFFFFFFFFFFFFFF:
+                raise ValueError(f"log_area_start_address must be in range[0:0xFFFFFFFFFFFFFFFF]: {hex(value)}")
+            self.metadata[key] = value.to_bytes(8, 'big')
+        else:
+            logging.warning("unknown field:value = {key}:{value} is specified, this data is discard.")
+        """
 
 def asl_to_aml(dest_vm_acpi_path, dest_vm_acpi_bin_path):
     '''
@@ -59,7 +181,7 @@ def asl_to_aml(dest_vm_acpi_path, dest_vm_acpi_bin_path):
 
 
 
-def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name):
+def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_etree, scenario_etree):
     '''
     create the binary of ACPI table.
     :param dest_vm_acpi_bin_path: the path of the aml code of ACPI tables
@@ -91,10 +213,36 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name):
         with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[4][1]), 'rb') as asl:
             acpi_bin.write(asl.read())
 
-        if 'tpm2.asl' in os.listdir(dest_vm_acpi_path):
-            acpi_bin.seek(ACPI_TPM2_ADDR_OFFSET)
-            with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[5][1]), 'rb') as asl:
-                acpi_bin.write(asl.read())
+        tpm2_enabled = common.get_node("//vm[@id = '0']/mmio_resources/TPM2/text()", scenario_etree)
+        if tpm2_enabled is not None and tpm2_enabled == 'y':
+            tpm2_node = common.get_node("//device[@id = 'MSFT0101']", board_etree)
+            if tpm2_node is not None:
+                tpm2_data = TPM2Metadata(tpm2_node)
+                _data = bytearray()
+                _data += tpm2_data["signature"]
+                _data += tpm2_data["length"]
+                _data += tpm2_data["revision"]
+                _data += tpm2_data["oemid"]
+                _data += tpm2_data["oemtableid"]
+                _data += tpm2_data["oemrevision"]
+                _data += tpm2_data["creatorid"]
+                _data += tpm2_data["creatorrevision"]
+                _data += tpm2_data["platformclass"]
+                _data += tpm2_data["reserved"]
+                _data += tpm2_data["controlarea"]
+                _data += tpm2_data["start_method"]
+                if "start_method_specific_parameters" in tpm2_data:
+                    _data += tpm2_data["start_method_specific_parameters"]
+                if "log_area_minimum_length" in tpm2_data:
+                    _data += tpm2_data["log_area_minimum_length"]
+                if "log_area_start_address" in tpm2_data:
+                    _data += tpm2_data["log_area_start_address"]
+
+                new_checksum = (~(sum(_data)) + 1) & 0xFF
+                acpi_bin.seek(ACPI_TPM2_ADDR_OFFSET)
+                acpi_bin.write(_data[0:9] + new_checksum.to_bytes(1, 'little') + _data[9:])
+            #with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[5][1]), 'rb') as asl:
+            #    acpi_bin.write(asl.read())
 
         acpi_bin.seek(ACPI_DSDT_ADDR_OFFSET)
         with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[6][1]), 'rb') as asl:
@@ -176,6 +324,10 @@ def main(args):
 
     board_type = args.board
     scenario_name = args.scenario
+    board_path = os.path.join(VM_CONFIGS_PATH, 'data', board_type, board_type + '.xml')
+    board_etree = lxml.etree.parse(board_path)
+    scenario_path = os.path.join(VM_CONFIGS_PATH, 'data', board_type, scenario_name + '.xml')
+    scenario_etree = lxml.etree.parse(scenario_path)
     if args.asl is None:
         DEST_ACPI_PATH = os.path.join(VM_CONFIGS_PATH, 'scenarios', scenario_name)
     else:
@@ -200,7 +352,7 @@ def main(args):
             os.makedirs(dest_vm_acpi_bin_path)
             if asl_to_aml(dest_vm_acpi_path, dest_vm_acpi_bin_path):
                 return 1
-            aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, config+'.bin')
+            aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, config+'.bin', board_etree, scenario_etree)
 
     return 0
 
