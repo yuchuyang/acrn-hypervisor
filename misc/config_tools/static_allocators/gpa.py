@@ -318,8 +318,13 @@ def allocate_ssram_region(board_etree, scenario_etree, allocation_etree):
                 common.append_node("./ssram/start_gpa", hex(start), allocation_vm_node)
                 common.append_node("./ssram/end_gpa", hex(end), allocation_vm_node)
 
+"""
+graph of gpa layout
+"""
 def fn(board_etree, scenario_etree, allocation_etree):
     allocate_ssram_region(board_etree, scenario_etree, allocation_etree)
+    alloc_pci_bar
+    alloc_tpm2_log_area
 
     native_low_mem, native_high_mem = get_pci_hole_native(board_etree)
     create_native_pci_hole_node(allocation_etree, native_low_mem, native_high_mem)
