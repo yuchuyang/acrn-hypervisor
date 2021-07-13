@@ -48,17 +48,17 @@ class TPM2Metadata:
                     raise TypeError(f"creatorrevision must be an integer: {type(value)}")
                 if value < 0 or value > 0xFFFFFFFF:
                     raise ValueError(f"creatorrevision must be in range[0:0xFFFFFFFF]: {hex(value)}")
-                self.metadata[key] = value.to_bytes(4, 'big')
+                self.metadata[key] = value.to_bytes(4, 'little')
             elif key == "controlarea":
                 if not isinstance(value, int):
                     raise TypeError(f"controlarea must be an integer: {type(value)}")
                 if value < 0 or value > 0xFFFFFFFFFFFFFFFF:
                     raise ValueError(f"controlarea must be in range[0:0xFFFFFFFFFFFFFFFF]: {hex(value)}")
-                self.metadata[key] = value.to_bytes(8, 'big')
+                self.metadata[key] = value.to_bytes(8, 'little')
             else:
                 logging.warning("unknown field:value = {key}:{value} is specified, this data is discard.")
         checksum = 0
-        self.metadata["checksum"] = checksum.to_bytes(1, 'big')
+        self.metadata["checksum"] = checksum.to_bytes(1, 'little')
 
     def create(self, data):
         data_len = len(data)
@@ -73,11 +73,15 @@ class TPM2Metadata:
         _data += data[36:40]
         _data += self.metadata["controlarea"] if "controlarea" in self.metadata else data[40:48]
         _data += data[48:52]
-        _data += data[52:data_len]
+        _data += bytes([0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0])
+        log_area_minimum_length = 0x10000
+        _data += log_area_minimum_length.to_bytes(4, 'little')
+        log_area_minimum_length = 0x44a59000
+        _data += log_area_minimum_length.to_bytes(8, 'little')
 
         new_checksum = (~(sum(_data)) + 1) & 0xFF
         with open("tpm2", 'wb') as file:
-            file.write(_data[0:9] + new_checksum.to_bytes(1, 'big') + _data[10:data_len])
+            file.write(_data[0:9] + new_checksum.to_bytes(1, 'little') + _data[10:])
         file.close()
 
 def tpm2_optional_data(data_len):
