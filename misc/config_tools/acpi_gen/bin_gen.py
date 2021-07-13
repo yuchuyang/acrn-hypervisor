@@ -5,10 +5,14 @@
 
 """
 
+import ctypes
 import logging
 import os, sys, subprocess, argparse, re, shutil
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'board_inspector'))
 import lxml.etree
 from acpi_const import *
+from acpiparser import tpm2
+import lib.cdata
 import common
 
 def HeaderData(**kwargs):
@@ -217,32 +221,31 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
         if tpm2_enabled is not None and tpm2_enabled == 'y':
             tpm2_node = common.get_node("//device[@id = 'MSFT0101']", board_etree)
             if tpm2_node is not None:
-                tpm2_data = TPM2Metadata(tpm2_node)
-                _data = bytearray()
-                _data += tpm2_data["signature"]
-                _data += tpm2_data["length"]
-                _data += tpm2_data["revision"]
-                _data += tpm2_data["oemid"]
-                _data += tpm2_data["oemtableid"]
-                _data += tpm2_data["oemrevision"]
-                _data += tpm2_data["creatorid"]
-                _data += tpm2_data["creatorrevision"]
-                _data += tpm2_data["platformclass"]
-                _data += tpm2_data["reserved"]
-                _data += tpm2_data["controlarea"]
-                _data += tpm2_data["start_method"]
-                if "start_method_specific_parameters" in tpm2_data:
-                    _data += tpm2_data["start_method_specific_parameters"]
-                if "log_area_minimum_length" in tpm2_data:
-                    _data += tpm2_data["log_area_minimum_length"]
-                if "log_area_start_address" in tpm2_data:
-                    _data += tpm2_data["log_area_start_address"]
+                tpm2_data_len = common.get_node("//table_length/text()", tpm2_node)
+                _tpm2_data_len = 0
+                has_log_area = False
+                if tpm2_data_len is not None:
+                    _tpm2_data_len = 76 if int(tpm2_data_len, 16) > 52 else 52
+                    has_log_area = True if int(tpm2_data_len, 16) > 52 else False
+                _data = bytearray(_tpm2_data_len)
+                cytpe_data = tpm2_factory(12, has_log_area).from_buffer_copy(_data)
+                cytpe_data.header.signature = "TPM2".encode()
+                cytpe_data.header.revision = 0x3
+                cytpe_data.header.oemid = "ACRN  ".encode()
+                cytpe_data.header.oemtableid = "ACRNTPM2".encode()
+                cytpe_data.header.oemrevision = 0x1
+                cytpe_data.header.creatorid = "INTL".encode()
+                cytpe_data.header.creatorrevision = 0x20190703
+                cytpe_data.address_of_control_area = 0x00000000FED40040
+                start_method_parameters = common.get_node("//parameter/text()", tpm2_node)
+                if start_method_parameters is not None:
+                    _parameters = bytearray.fromhex(str)
+                    for i in range(len(_parameters)):
+                        ctype_data.start_method_parameters[i] = _parameters[i].to_bytes(1, 'little')
 
-                new_checksum = (~(sum(_data)) + 1) & 0xFF
+                cytpe_data.header.revision = (~(sum(lib.cdata.to_bytes(cytpe_data))) + 1) & 0xFF
                 acpi_bin.seek(ACPI_TPM2_ADDR_OFFSET)
-                acpi_bin.write(_data[0:9] + new_checksum.to_bytes(1, 'little') + _data[9:])
-            #with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[5][1]), 'rb') as asl:
-            #    acpi_bin.write(asl.read())
+                acpi_bin.write(lib.cdata.to_bytes(cytpe_data))
 
         acpi_bin.seek(ACPI_DSDT_ADDR_OFFSET)
         with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[6][1]), 'rb') as asl:
