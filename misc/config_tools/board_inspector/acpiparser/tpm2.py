@@ -105,9 +105,9 @@ def tpm2_factory(start_method_data_len, has_log_area):
             ('header', TableHeader),
             ('platform_class', ctypes.c_uint16),
             ('reserved', ctypes.c_uint16),
-            ('address_of_control_area', ctypes.c_uint64),
+            (' ', ctypes.c_uint64),
             ('start_method', ctypes.c_uint32),
-            ('start_method_specific_parameters', ctypes.c_ubyte * start_method_data_len),
+            ('start_method_specific_parameters', ctypes.c_uint16, start_method_data_len),
         ] + ([
             ('log_area_minimum_length', ctypes.c_uint32),
             ('log_area_start_address', ctypes.c_uint64),
@@ -117,9 +117,10 @@ def tpm2_factory(start_method_data_len, has_log_area):
 
 def TPM2(val):
     """Create class based on decode of a TPM2 table from filename."""
-    base_length = 52
-    data = open(val, mode='rb').read()
-    start_method_data_len, has_log_area = tpm2_optional_data(len(data) - base_length)
-    metadata = TPM2Metadata(oemid = "ACRN  ", oemtableid = "ACRNTPM2", creatorid = "INTL", creatorrevision = 0x20190703, controlarea = 0x00000000FED40040)
-    metadata.create(data)
-    return tpm2_factory(start_method_data_len, has_log_area).from_buffer_copy(data)
+    if isinstance(val, str):
+        base_length = 52
+        data = open(val, mode='rb').read()
+        start_method_data_len, has_log_area = tpm2_optional_data(len(data) - base_length)
+        return tpm2_factory(start_method_data_len, has_log_area).from_buffer_copy(data)
+    elif isinstance(val, bytearray):
+        return tpm2_factory(12, True).from_buffer_copy(val)
