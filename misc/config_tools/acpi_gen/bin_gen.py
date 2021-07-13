@@ -11,129 +11,9 @@ import os, sys, subprocess, argparse, re, shutil
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'board_inspector'))
 import lxml.etree
 from acpi_const import *
-from acpiparser import tpm2
+import acpiparser.tpm2
 import lib.cdata
 import common
-
-def HeaderData(**kwargs):
-    data = {}
-    for key, value in kwargs.items():
-        if key == "signature":
-            if not isinstance(value, str):
-                raise TypeError(f"signature must be a string: {type(value)}")
-            if len(value) > 4:
-                raise IndexError(f"signature must be fitted in 4 bytes: length of signature {len(value)}")
-            data[key] = value.encode()
-        elif key == "length":
-            if not isinstance(value, int):
-                raise TypeError(f"length must be an integer: {type(value)}")
-            if value < 0 or value > 0xFFFFFFFF:
-                raise ValueError(f"length must be in range[0:0xFFFFFFFF]: {hex(value)}")
-            data[key] = value.to_bytes(4, 'little')
-        elif key == "revision":
-            if not isinstance(value, int):
-                raise TypeError(f"revision must be an integer: {type(value)}")
-            if value < 0 or value > 0xFF:
-                raise ValueError(f"revision must be in range[0:0xFF]: {hex(value)}")
-            data[key] = value.to_bytes(1, 'little')
-        elif key == "oemid":
-            if not isinstance(value, str):
-                raise TypeError(f"oemid must be a string: {type(value)}")
-            if len(value) > 6:
-                raise IndexError(f"oemid must be fitted in 6 bytes: length of oemid {len(value)}")
-            data[key] = value.encode()
-        elif key == "oemtableid":
-            if not isinstance(value, str):
-                raise TypeError(f"oemtableid must be a string: {type(value)}")
-            if len(value) > 8:
-                raise IndexError(f"oemtableid must be fitted in 8 bytes: length of oemtableid {len(value)}")
-            data[key] = value.encode()
-        elif key == "oemrevision":
-            if not isinstance(value, int):
-                raise TypeError(f"oemrevision must be an integer: {type(value)}")
-            if value < 0 or value > 0xFFFFFFFF:
-                raise ValueError(f"oemrevision must be in range[0:0xFFFFFFFF]: {hex(value)}")
-            data[key] = value.to_bytes(4, 'little')
-        elif key == "creatorid":
-            if not isinstance(value, str):
-                raise TypeError(f"creatorid must be a string: {type(value)}")
-            if len(value) > 4:
-                raise IndexError(f"creatorid must be fitted in 4 bytes: length of creatorid {len(value)}")
-            data[key] = value.encode()
-        elif key == "creatorrevision":
-            if not isinstance(value, int):
-                raise TypeError(f"creatorrevision must be an integer: {type(value)}")
-            if value < 0 or value > 0xFFFFFFFF:
-                raise ValueError(f"creatorrevision must be in range[0:0xFFFFFFFF]: {hex(value)}")
-            data[key] = value.to_bytes(4, 'little')
-        elif key == "platformclass":
-            if not isinstance(value, int):
-                raise TypeError(f"platformclass must be an integer: {type(value)}")
-            if value < 0 or value > 0xFFFF:
-                raise ValueError(f"platformclass must be in range[0:0xFFFF]: {hex(value)}")
-            data[key] = value.to_bytes(2, 'little')
-        else:
-            logging.warning("unknown field:value = {key}:{value} is specified, this data is discard.")
-    return data
-
-def TPM2Metadata(tpm2_node):
-    data = HeaderData(
-        signature = "TPM2",
-        length = int(common.get_node("./table_length/text()", tpm2_node), 16),
-        revision = 0x3,
-        oemid = "ACRN  ",
-        oemtableid = "ACRNTPM2",
-        oemrevision = 0x1,
-        creatorid = "INTL",
-        creatorrevision = 0x20190703,
-        platformclass = 0x0,
-        )
-    data["reserved"] = int("0", 16).to_bytes(2, 'little')
-    data["controlarea"] = int("FED40040", 16).to_bytes(8, 'little')
-    data["start_method"] = int(common.get_node("./capability[@id = 'start_method']/value/text()", tpm2_node), 16).to_bytes(4, 'little')
-    start_method_specific_parameters = [int(parameter, 16) for parameter in tpm2_node.xpath("//parameters")]
-    if len(start_method_specific_parameters) > 0:
-        data["start_method_specific_parameters"] = bytes(start_method_specific_parameters)
-    log_area_minimum_length = common.get_node("//log_area_minimum_length", tpm2_node)
-    if log_area_minimum_length is not None:
-        data["log_area_minimum_length"] = int(log_area_minimum_length, 16).to_bytes(4, 'little')
-    log_area_start_address = common.get_node("//log_area_start_address", tpm2_node)
-    if log_area_start_address is not None:
-        data["log_area_start_address"] = int(log_area_start_address, 16).to_bytes(8, 'little')
-    return data
-    """
-    for key, value in kwargs.items():
-        if key == "controlarea":
-            if not isinstance(value, int):
-                raise TypeError(f"controlarea must be an integer: {type(value)}")
-            if value < 0 or value > 0xFFFFFFFFFFFFFFFF:
-                raise ValueError(f"controlarea must be in range[0:0xFFFFFFFFFFFFFFFF]: {hex(value)}")
-            self.metadata[key] = value.to_bytes(8, 'big')
-        elif key == "start_method":
-            if not isinstance(value, int):
-                raise TypeError(f"start_method must be an integer: {type(value)}")
-            if value < 0 or value > 11:
-                raise ValueError(f"start_method must be in range[0:0xB]: {hex(value)}")
-            self.metadata[key] = bytes(value)
-        elif key == "start_method_specific_parameters":
-            if not isinstance(value, list):
-                raise TypeError(f"start_method_specific_parameters must be a list: {type(value)}")
-            self.metadata[key] = bytes(value)
-        elif key == "log_area_minimum_length":
-            if not isinstance(value, int):
-                raise TypeError(f"log_area_minimum_length must be an integer: {type(value)}")
-            if value < 0 or value > 0xFFFFFFFF:
-                raise ValueError(f"log_area_minimum_length must be in range[0:0xFFFFFFFF]: {hex(value)}")
-            self.metadata[key] = value.to_bytes(4, 'big')
-        elif key == "log_area_start_address":
-            if not isinstance(value, int):
-                raise TypeError(f"log_area_start_address must be an integer: {type(value)}")
-            if value < 0 or value > 0xFFFFFFFFFFFFFFFF:
-                raise ValueError(f"log_area_start_address must be in range[0:0xFFFFFFFFFFFFFFFF]: {hex(value)}")
-            self.metadata[key] = value.to_bytes(8, 'big')
-        else:
-            logging.warning("unknown field:value = {key}:{value} is specified, this data is discard.")
-        """
 
 def asl_to_aml(dest_vm_acpi_path, dest_vm_acpi_bin_path):
     '''
@@ -225,10 +105,10 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
                 _tpm2_data_len = 0
                 has_log_area = False
                 if tpm2_data_len is not None:
-                    _tpm2_data_len = 76 if int(tpm2_data_len, 16) > 52 else 52
+                    _tpm2_data_len = 76 if int(tpm2_data_len, 16) > 52 else 64
                     has_log_area = True if int(tpm2_data_len, 16) > 52 else False
                 _data = bytearray(_tpm2_data_len)
-                cytpe_data = tpm2_factory(12, has_log_area).from_buffer_copy(_data)
+                cytpe_data = acpiparser.tpm2.tpm2_factory(12, has_log_area).from_buffer_copy(_data)
                 cytpe_data.header.signature = "TPM2".encode()
                 cytpe_data.header.revision = 0x3
                 cytpe_data.header.oemid = "ACRN  ".encode()
@@ -237,13 +117,13 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
                 cytpe_data.header.creatorid = "INTL".encode()
                 cytpe_data.header.creatorrevision = 0x20190703
                 cytpe_data.address_of_control_area = 0x00000000FED40040
-                start_method_parameters = common.get_node("//parameter/text()", tpm2_node)
+                start_method_parameters = tpm2_node.xpath("//parameter/text()")
                 if start_method_parameters is not None:
                     _parameters = bytearray.fromhex(str)
-                    for i in range(len(_parameters)):
-                        ctype_data.start_method_parameters[i] = _parameters[i].to_bytes(1, 'little')
+                    for i in range(len(start_method_parameters)):
+                        cytpe_data.start_method_specific_parameters[i] = int(start_method_parameters[i], 16)
 
-                cytpe_data.header.revision = (~(sum(lib.cdata.to_bytes(cytpe_data))) + 1) & 0xFF
+                cytpe_data.header.checksum = (~(sum(lib.cdata.to_bytes(cytpe_data))) + 1) & 0xFF
                 acpi_bin.seek(ACPI_TPM2_ADDR_OFFSET)
                 acpi_bin.write(lib.cdata.to_bytes(cytpe_data))
 
