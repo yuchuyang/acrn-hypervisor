@@ -107,7 +107,7 @@ def tpm2_factory(start_method_data_len, has_log_area):
             ('reserved', ctypes.c_uint16),
             ('address_of_control_area', ctypes.c_uint64),
             ('start_method', ctypes.c_uint32),
-            ('start_method_specific_parameters', ctypes.c_uint16, start_method_data_len),
+            ('start_method_specific_parameters', ctypes.c_ubyte * start_method_data_len),
         ] + ([
             ('log_area_minimum_length', ctypes.c_uint32),
             ('log_area_start_address', ctypes.c_uint64),
