@@ -102,7 +102,7 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
             tpm2_node = common.get_node("//device[@id = 'MSFT0101']", board_etree)
             if tpm2_node is not None:
                 _data = bytearray(0x4c) if common.get_node("//capability[@id = 'log_area']", board_etree) is not None else bytearray(0x40)
-                ctype_data = acpiparser.tpm2.tpm2(_data)
+                ctype_data = acpiparser.tpm2.TPM2(_data)
                 ctype_data.header.signature = "TPM2".encode()
                 ctype_data.header.length = 0x4c
                 ctype_data.header.revision = 0x3
