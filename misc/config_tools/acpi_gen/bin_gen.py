@@ -113,6 +113,7 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
                 ctype_data.header.creatorid = "INTL".encode()
                 ctype_data.header.creatorrevision = 0x20190703
                 ctype_data.address_of_control_area = 0x00000000FED40040
+                ctype_data.start_method = int(common.get_node("//capability[@id = 'start_method']/value/text()", tpm2_node), 16)
                 start_method_parameters = tpm2_node.xpath("//parameter/text()")
                 for i in range(len(start_method_parameters)):
                     ctype_data.start_method_specific_parameters[i] = int(start_method_parameters[i], 16)

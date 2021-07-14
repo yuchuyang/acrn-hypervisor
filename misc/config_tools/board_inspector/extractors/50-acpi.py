@@ -100,7 +100,6 @@ def parse_tpm(elem):
     try:
         data = parse_tpm2()
 
-        add_child(elem, "table_length", hex(data.header.length))
         control_area = add_child(elem, "capability", None, id="control_area")
         add_child(control_area, "address_of_control_area", hex(data.address_of_control_area))
         start_method = add_child(elem, "capability", None, id="start_method")
@@ -108,9 +107,7 @@ def parse_tpm(elem):
         for parameter in data.start_method_specific_parameters:
             add_child(start_method, "parameter", hex(parameter))
         if ctypes.sizeof(data) > 52:
-            log_area = add_child(elem, "capability", None, id="log_area")
-            add_child(log_area, "log_area_minimum_length", hex(data.log_area_minimum_length))
-            add_child(log_area, "log_area_start_address", hex(data.log_area_start_address))
+            add_child(elem, "capability", None, id="log_area")
     except Exception as e:
         logging.info(f"Parse ACPI TPM2 failed: {str(e)}")
         logging.info(f"Will not extract information from ACPI TPM2")
