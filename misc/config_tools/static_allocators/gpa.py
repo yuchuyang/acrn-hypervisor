@@ -59,6 +59,9 @@ PCI_VUART_VBAR1_SIZE = 4 * SIZE_K
 # Constants for vmsix bar
 VMSIX_VBAR_SIZE = 4 * SIZE_K
 
+# Constants for tpm2 log area minimum length
+LOG_AREA_MIN_LEN = 1 * SIZE_M
+
 class MmioWindow(namedtuple(
         "MmioWindow", [
             "start",
@@ -304,12 +307,33 @@ def allocate_ssram_region(board_etree, scenario_etree, allocation_etree):
                 common.append_node("./ssram/start_gpa", hex(start), allocation_vm_node)
                 common.append_node("./ssram/end_gpa", hex(end), allocation_vm_node)
 
+def allocate_log_area(board_etree, scenario_etree, allocation_etree):
+    tpm2_enabled = common.get_node(f"//vm[@id = '0']/mmio_resources/TPM2/text()", scenario_etree)
+    if tpm2_enabled is None or tpm2_enabled == 'n':
+        return
+
+    if common.get_node("//capability[@id='log_area']", board_etree) is not None:
+        vm_ram_size = common.get_node("//vm[@id = '0']/memory/size/text()", scenario_etree)
+        assert vm_ram_size is not None, f"Missing node: //vm[@id = '0']/memory/size"
+        log_area_end_address = min(int(vm_ram_size, 16), 0xFFF0000)
+        log_area_start_address = log_area_end_address - LOG_AREA_MIN_LEN
+        allocation_vm_node = common.get_node(f"/acrn-config/vm[@id = '0']", allocation_etree)
+        if allocation_vm_node is None:
+            allocation_vm_node = common.append_node("/acrn-config/vm", None, allocation_etree, id = '0')
+        common.append_node("./log_area_start_address", hex(log_area_start_address).upper(), allocation_vm_node)
+        common.append_node("./log_area_minimum_length", hex(LOG_AREA_MIN_LEN).upper(), allocation_vm_node)
+
+"""
+graph of gpa layout
+"""
 def fn(board_etree, scenario_etree, allocation_etree):
     allocate_ssram_region(board_etree, scenario_etree, allocation_etree)
+    allocate_log_area(board_etree, scenario_etree, allocation_etree)
 
     native_low_mem, native_high_mem = get_pci_hole_native(board_etree)
     create_native_pci_hole_node(allocation_etree, native_low_mem, native_high_mem)
 
+    # allocate_pci_bar
     vm_nodes = scenario_etree.xpath("//vm")
     for vm_node in vm_nodes:
         vm_id = vm_node.get('id')
