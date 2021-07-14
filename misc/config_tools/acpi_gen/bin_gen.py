@@ -5,7 +5,6 @@
 
 """
 
-import ctypes
 import logging
 import os, sys, subprocess, argparse, re, shutil
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'board_inspector'))
@@ -141,6 +140,9 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
                 ctype_data.header.checksum = (~(sum(lib.cdata.to_bytes(ctype_data))) + 1) & 0xFF
                 acpi_bin.seek(ACPI_TPM2_ADDR_OFFSET)
                 acpi_bin.write(lib.cdata.to_bytes(ctype_data))
+            else:
+                logging.warning("Passtrhough tpm2 is enabled in scenario but the device is not presented on board.")
+                logging.warning("Check there is tpm2 device on board and re-generate the xml using board inspector with --advanced option.")
 
         acpi_bin.seek(0xfffff)
         acpi_bin.write(b'\0')
