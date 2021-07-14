@@ -108,24 +108,22 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
                     _tpm2_data_len = 76 if int(tpm2_data_len, 16) > 52 else 64
                     has_log_area = True if int(tpm2_data_len, 16) > 52 else False
                 _data = bytearray(_tpm2_data_len)
-                cytpe_data = acpiparser.tpm2.tpm2_factory(12, has_log_area).from_buffer_copy(_data)
-                cytpe_data.header.signature = "TPM2".encode()
-                cytpe_data.header.revision = 0x3
-                cytpe_data.header.oemid = "ACRN  ".encode()
-                cytpe_data.header.oemtableid = "ACRNTPM2".encode()
-                cytpe_data.header.oemrevision = 0x1
-                cytpe_data.header.creatorid = "INTL".encode()
-                cytpe_data.header.creatorrevision = 0x20190703
-                cytpe_data.address_of_control_area = 0x00000000FED40040
+                ctype_data = acpiparser.tpm2.tpm2_factory(12, has_log_area).from_buffer_copy(_data)
+                ctype_data.header.signature = "TPM2".encode()
+                ctype_data.header.revision = 0x3
+                ctype_data.header.oemid = "ACRN  ".encode()
+                ctype_data.header.oemtableid = "ACRNTPM2".encode()
+                ctype_data.header.oemrevision = 0x1
+                ctype_data.header.creatorid = "INTL".encode()
+                ctype_data.header.creatorrevision = 0x20190703
+                ctype_data.address_of_control_area = 0x00000000FED40040
                 start_method_parameters = tpm2_node.xpath("//parameter/text()")
-                if start_method_parameters is not None:
-                    _parameters = bytearray.fromhex(str)
-                    for i in range(len(start_method_parameters)):
-                        cytpe_data.start_method_specific_parameters[i] = int(start_method_parameters[i], 16)
+                for i in range(len(start_method_parameters)):
+                    ctype_data.start_method_specific_parameters[i] = int(start_method_parameters[i], 16)
 
-                cytpe_data.header.checksum = (~(sum(lib.cdata.to_bytes(cytpe_data))) + 1) & 0xFF
+                ctype_data.header.checksum = (~(sum(lib.cdata.to_bytes(ctype_data))) + 1) & 0xFF
                 acpi_bin.seek(ACPI_TPM2_ADDR_OFFSET)
-                acpi_bin.write(lib.cdata.to_bytes(cytpe_data))
+                acpi_bin.write(lib.cdata.to_bytes(ctype_data))
 
         acpi_bin.seek(ACPI_DSDT_ADDR_OFFSET)
         with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[6][1]), 'rb') as asl:

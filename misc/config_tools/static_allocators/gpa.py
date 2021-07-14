@@ -313,14 +313,14 @@ def allocate_log_area(board_etree, scenario_etree, allocation_etree):
         return
     log_area = common.get_node("//device[@id = 'MSFT0101']/capability[@id='log_area']", board_etree)
     if log_area is not None:
-        vm_ram_size = common.get_node("//vm[@id = '0']/memory/size/text()", board_etree)
+        vm_ram_size = common.get_node("//vm[@id = '0']/memory/size/text()", scenario_etree)
         assert vm_ram_size is not None, f"Missing node: //vm[@id = '0']/memory/size"
         assert int(vm_ram_size, 16) >= LOG_AREA_MIN_LEN, f"//vm[@id = '0']/memory/size should be greater than {LOG_AREA_MIN_LEN:#0x}"
         log_area_end_address = min(int(vm_ram_size, 16), 0xFFF0000)
         log_area_start_address = log_area_end_address - LOG_AREA_MIN_LEN
         allocation_vm_node = common.get_node(f"/acrn-config/vm[@id = '0']", allocation_etree)
         if allocation_vm_node is None:
-            allocation_vm_node = common.append_node("/acrn-config/vm", None, allocation_etree, id = 0)
+            allocation_vm_node = common.append_node("/acrn-config/vm", None, allocation_etree, id = '0')
         common.append_node("./log_area_start_address", hex(log_area_start_address), allocation_vm_node)
         common.append_node("./log_area_minimum_length", hex(LOG_AREA_MIN_LEN), allocation_vm_node)
 
