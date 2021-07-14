@@ -116,8 +116,8 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
                 for i in range(len(start_method_parameters)):
                     ctype_data.start_method_specific_parameters[i] = int(start_method_parameters[i], 16)
                 if common.get_node("//capability[@id = 'log_area']", board_etree) is not None:
-                    ctype_data.log_area_minimum_length = int(common.get_node("//log_area_minimum_length", allocation_etree), 16)
-                    ctype_data.log_area_start_address = int(common.get_node("//log_area_start_address", allocation_etree), 16)
+                    ctype_data.log_area_minimum_length = int(common.get_node("//log_area_minimum_length/text()", allocation_etree), 16)
+                    ctype_data.log_area_start_address = int(common.get_node("//log_area_start_address/text()", allocation_etree), 16)
                 ctype_data.header.checksum = (~(sum(lib.cdata.to_bytes(ctype_data))) + 1) & 0xFF
                 acpi_bin.seek(ACPI_TPM2_ADDR_OFFSET)
                 acpi_bin.write(lib.cdata.to_bytes(ctype_data))
