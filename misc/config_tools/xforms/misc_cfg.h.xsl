@@ -192,7 +192,7 @@
         <xsl:value-of select="acrn:define('VM0_TPM_BUFFER_BASE_ADDR_GPA', '0xFED40000', 'UL')" />
         <xsl:value-of select="acrn:define('VM0_TPM_BUFFER_SIZE', '0x5000', 'UL')" />
         <xsl:choose>
-          <xsl:when test="legacy_vuart[@id = 0]/base[text() != 'INVALID_COM_BASE']">
+          <xsl:when test="//allocation-data/acrn-config/vm[@id = '0']/log_area_start_address">
             <xsl:value-of select="acrn:define('VM0_TPM_EVENTLOG_BASE_ADDR', //allocation-data/acrn-config/vm[@id = '0']/log_area_start_address, 'UL')" />
             <xsl:value-of select="acrn:define('VM0_TPM_EVENTLOG_BASE_ADDR_GPA', //allocation-data/acrn-config/vm[@id = '0']/log_area_start_address, 'UL')" />
             <xsl:value-of select="acrn:define('VM0_TPM_EVENTLOG_SIZE', //allocation-data/acrn-config/vm[@id = '0']/log_area_minimum_length, 'UL')" />
