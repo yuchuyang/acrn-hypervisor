@@ -65,7 +65,7 @@ def asl_to_aml(dest_vm_acpi_path, dest_vm_acpi_bin_path):
 
 
 
-def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_etree, scenario_etree):
+def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_etree, scenario_etree, allocation_etree):
     '''
     create the binary of ACPI table.
     :param dest_vm_acpi_bin_path: the path of the aml code of ACPI tables
@@ -101,15 +101,10 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
         if tpm2_enabled is not None and tpm2_enabled == 'y':
             tpm2_node = common.get_node("//device[@id = 'MSFT0101']", board_etree)
             if tpm2_node is not None:
-                tpm2_data_len = common.get_node("//table_length/text()", tpm2_node)
-                _tpm2_data_len = 0
-                has_log_area = False
-                if tpm2_data_len is not None:
-                    _tpm2_data_len = 76 if int(tpm2_data_len, 16) > 52 else 64
-                    has_log_area = True if int(tpm2_data_len, 16) > 52 else False
-                _data = bytearray(_tpm2_data_len)
-                ctype_data = acpiparser.tpm2.tpm2_factory(12, has_log_area).from_buffer_copy(_data)
+                _data = bytearray(0x4c) if common.get_node("//capability[@id = 'log_area']", board_etree) is not None else bytearray(0x40)
+                ctype_data = acpiparser.tpm2.tpm2(_data)
                 ctype_data.header.signature = "TPM2".encode()
+                ctype_data.header.length = 0x4c
                 ctype_data.header.revision = 0x3
                 ctype_data.header.oemid = "ACRN  ".encode()
                 ctype_data.header.oemtableid = "ACRNTPM2".encode()
@@ -120,7 +115,9 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
                 start_method_parameters = tpm2_node.xpath("//parameter/text()")
                 for i in range(len(start_method_parameters)):
                     ctype_data.start_method_specific_parameters[i] = int(start_method_parameters[i], 16)
-
+                if common.get_node("//capability[@id = 'log_area']", board_etree) is not None:
+                    ctype_data.log_area_minimum_length = int(common.get_node("//log_area_minimum_length", allocation_etree), 16)
+                    ctype_data.log_area_start_address = int(common.get_node("//log_area_start_address", allocation_etree), 16)
                 ctype_data.header.checksum = (~(sum(lib.cdata.to_bytes(ctype_data))) + 1) & 0xFF
                 acpi_bin.seek(ACPI_TPM2_ADDR_OFFSET)
                 acpi_bin.write(lib.cdata.to_bytes(ctype_data))
@@ -209,6 +206,8 @@ def main(args):
     board_etree = lxml.etree.parse(board_path)
     scenario_path = os.path.join(VM_CONFIGS_PATH, 'data', board_type, scenario_name + '.xml')
     scenario_etree = lxml.etree.parse(scenario_path)
+    allocation_path = os.path.join(common.SOURCE_ROOT_DIR, 'build', 'hypervisor', 'configs' ,'allocation.xml')
+    allocation_etree = lxml.etree.parse(allocation_path)
     if args.asl is None:
         DEST_ACPI_PATH = os.path.join(VM_CONFIGS_PATH, 'scenarios', scenario_name)
     else:
@@ -233,7 +232,7 @@ def main(args):
             os.makedirs(dest_vm_acpi_bin_path)
             if asl_to_aml(dest_vm_acpi_path, dest_vm_acpi_bin_path):
                 return 1
-            aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, config+'.bin', board_etree, scenario_etree)
+            aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, config+'.bin', board_etree, scenario_etree, allocation_etree)
 
     return 0
 

@@ -123,4 +123,4 @@ def TPM2(val):
         start_method_data_len, has_log_area = tpm2_optional_data(len(data) - base_length)
         return tpm2_factory(start_method_data_len, has_log_area).from_buffer_copy(data)
     elif isinstance(val, bytearray):
-        return tpm2_factory(12, True).from_buffer_copy(val)
+        return tpm2_factory(12, True).from_buffer_copy(val) if len(val) > 64 else tpm2_factory(12, False).from_buffer_copy(val)
