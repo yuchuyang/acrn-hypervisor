@@ -97,6 +97,24 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
         with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[4][1]), 'rb') as asl:
             acpi_bin.write(asl.read())
 
+        if 'tpm2.asl' in os.listdir(dest_vm_acpi_path):
+            acpi_bin.seek(ACPI_TPM2_ADDR_OFFSET)
+            with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[5][1]), 'rb') as asl:
+                acpi_bin.write(asl.read())
+
+        acpi_bin.seek(ACPI_DSDT_ADDR_OFFSET)
+        with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[6][1]), 'rb') as asl:
+            acpi_bin.write(asl.read())
+
+        if 'PTCT' in os.listdir(dest_vm_acpi_path):
+            acpi_bin.seek(ACPI_RTCT_ADDR_OFFSET)
+            with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[7][1]), 'rb') as asl:
+                acpi_bin.write(asl.read())
+        elif 'RTCT' in os.listdir(dest_vm_acpi_path):
+            acpi_bin.seek(ACPI_RTCT_ADDR_OFFSET)
+            with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[8][1]), 'rb') as asl:
+                acpi_bin.write(asl.read())
+
         tpm2_enabled = common.get_node("//vm[@id = '0']/mmio_resources/TPM2/text()", scenario_etree)
         if tpm2_enabled is not None and tpm2_enabled == 'y':
             tpm2_node = common.get_node("//device[@id = 'MSFT0101']", board_etree)
@@ -123,19 +141,6 @@ def aml_to_bin(dest_vm_acpi_path, dest_vm_acpi_bin_path, acpi_bin_name, board_et
                 ctype_data.header.checksum = (~(sum(lib.cdata.to_bytes(ctype_data))) + 1) & 0xFF
                 acpi_bin.seek(ACPI_TPM2_ADDR_OFFSET)
                 acpi_bin.write(lib.cdata.to_bytes(ctype_data))
-
-        acpi_bin.seek(ACPI_DSDT_ADDR_OFFSET)
-        with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[6][1]), 'rb') as asl:
-            acpi_bin.write(asl.read())
-
-        if 'PTCT' in os.listdir(dest_vm_acpi_path):
-            acpi_bin.seek(ACPI_RTCT_ADDR_OFFSET)
-            with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[7][1]), 'rb') as asl:
-                acpi_bin.write(asl.read())
-        elif 'RTCT' in os.listdir(dest_vm_acpi_path):
-            acpi_bin.seek(ACPI_RTCT_ADDR_OFFSET)
-            with open(os.path.join(dest_vm_acpi_bin_path, ACPI_TABLE_LIST[8][1]), 'rb') as asl:
-                acpi_bin.write(asl.read())
 
         acpi_bin.seek(0xfffff)
         acpi_bin.write(b'\0')
