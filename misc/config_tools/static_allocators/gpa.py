@@ -321,8 +321,8 @@ def allocate_log_area(board_etree, scenario_etree, allocation_etree):
         allocation_vm_node = common.get_node(f"/acrn-config/vm[@id = '0']", allocation_etree)
         if allocation_vm_node is None:
             allocation_vm_node = common.append_node("/acrn-config/vm", None, allocation_etree, id = '0')
-        common.append_node("./log_area_start_address", hex(log_area_start_address), allocation_vm_node)
-        common.append_node("./log_area_minimum_length", hex(LOG_AREA_MIN_LEN), allocation_vm_node)
+        common.append_node("./log_area_start_address", hex(log_area_start_address).upper(), allocation_vm_node)
+        common.append_node("./log_area_minimum_length", hex(LOG_AREA_MIN_LEN).upper(), allocation_vm_node)
 
 """
 graph of gpa layout
