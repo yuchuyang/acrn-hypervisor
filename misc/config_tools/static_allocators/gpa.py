@@ -314,8 +314,8 @@ def allocate_log_area(board_etree, scenario_etree, allocation_etree):
     log_area = common.get_node("//device[@id = 'MSFT0101']/capability[@id='log_area']", board_etree)
     if log_area is not None:
         vm_ram_size = common.get_node("//vm[@id = '0']/memory/size/text()", board_etree)
-        assert(vm_ram_size is not None)
-        assert(int(vm_ram_size, 16) >= LOG_AREA_MIN_LEN)
+        assert vm_ram_size is not None, f"Missing node: //vm[@id = '0']/memory/size"
+        assert int(vm_ram_size, 16) >= LOG_AREA_MIN_LEN, f"//vm[@id = '0']/memory/size should be greater than {LOG_AREA_MIN_LEN:#0x}"
         log_area_end_address = min(int(vm_ram_size, 16), 0xFFF0000)
         log_area_start_address = log_area_end_address - LOG_AREA_MIN_LEN
         allocation_vm_node = common.get_node(f"/acrn-config/vm[@id = '0']", allocation_etree)
