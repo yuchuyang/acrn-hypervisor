@@ -59,7 +59,8 @@ class ConditionallyUnregisterSymbolVisitor(Visitor):
                     self.conditionally_hidden = False
             else:
                 self.conditionally_hidden = True
-                self.visit_topdown(tree.children[2])
+                if len(tree.children) >= 3:
+                    self.visit_topdown(tree.children[2])
                 self.conditionally_hidden = False
                 if len(tree.children) == 4:
                     self.visit_topdown(tree.children[3])
